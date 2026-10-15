@@ -1,0 +1,18 @@
+name: Bug
+description: Something does not work as described.
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you saw. Use made-up data only.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: How to reproduce
+      placeholder: "1. pnpm dev\n2. …"
+  - type: input
+    attributes:
+      label: Versions
+      placeholder: "Node 24.x, pnpm 11.x, Claude Code 2.x, browser"

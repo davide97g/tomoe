@@ -14,8 +14,7 @@ Tomoe looks at an app and copies what matters into widgets. It has three parts:
 ## Read first
 
 - `references/blueprint.md`: the full spec. Read the sections the task needs: §1 rules, §4 discovery and manifest, §5 query DSL, §6 declarative path, §7 sandbox, §8 agent, §9 security checklist, §10 tests, §11 build order.
-- Reference code: `~/personal/projects/tomoe/packages/core` (its README lists the modules). Reuse it rather than rewriting it: `createTomoe(manifest)` returns every schema, the prompt and the block pipeline.
-- The origin: Autocratico's Board (`~/personal/projects/autocratico`, `docs/generative-ui.md`, `packages/core/src/widgets.ts`, `apps/web/public/sandbox/widget.html`). It is the version running in production, built on one fixed data model.
+- Reference code: `packages/core` of the Tomoe repository (its README lists the modules). Reuse it rather than rewriting it: `createTomoe(manifest)` returns every schema, the prompt and the block pipeline. The app around it is in `apps/server` and `apps/web`; blueprint §12 maps each idea to its file.
 
 ## Workflows
 
@@ -33,7 +32,7 @@ Tomoe looks at an app and copies what matters into widgets. It has three parts:
 
 ### B. Build the chat app around the core
 
-Follow blueprint §11 in order: adapter and query executor, then renderer and catalog, then board store and API, then chat agent and proposal UI, then the discovery UI, then the sandbox. Per step, see the matching section of the blueprint and the core module. The host side of the sandbox (the iframe component) is described in §7.7. Port it from Autocratico's `apps/web/src/components/sandbox-frame.tsx`.
+Follow blueprint §11 in order: adapter and query executor, then renderer and catalog, then board store and API, then chat agent and proposal UI, then the discovery UI, then the sandbox. Per step, see the matching section of the blueprint and the core module. The host side of the sandbox (the iframe component) is described in §7.7. Reuse `apps/web/src/components/sandbox-frame.tsx`.
 
 ### C. Add a component or extend the query DSL
 

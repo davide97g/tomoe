@@ -2,9 +2,9 @@
 
 **Purpose.** The build spec for Tomoe, a standalone chat app that attaches to an existing application ("the host app"), lets an LLM discover what data and actions the host exposes, and then designs dashboards and widgets on request: declarative widgets from a catalog first, free code in a sandbox when the catalog is not enough.
 
-**Where it comes from.** Distilled from Autocratico's Board (`~/personal/projects/autocratico`, `docs/generative-ui.md`, commits `c083a5f` and `dd510ae`, October 2026).
+**Where it comes from.** Distilled from a first version that ran in production inside a single app with one fixed data model (October 2026), then generalised to any host.
 
-**Reference implementation.** `packages/core` in the Tomoe repo (`~/personal/projects/tomoe`) implements §4.3 (manifest), §5.2 (query DSL and evaluation), §6 (catalog, spec, widgets, blocks, board load), §7 (sandbox page, CSP, messages) and §8.2 (prompt generated from catalog and manifest), with tests. Where this document and the code disagree, the code wins: update the document. Everything marked **[built]** ran in production there; **[proposed]** is the generalisation this blueprint adds (mainly discovery and the generic query layer) and has not been tested yet. Spec research (A2UI, json-render, MCP Apps, AG-UI) was verified on 2026-10-14; those projects are young, re-check before borrowing from them.
+**Reference implementation.** `packages/core` in this repository implements §4.3 (manifest), §5.2 (query DSL and evaluation), §6 (catalog, spec, widgets, blocks, board load), §7 (sandbox page, CSP, messages) and §8.2 (prompt generated from catalog and manifest), with tests. Where this document and the code disagree, the code wins: update the document. Everything marked **[built]** is implemented and tested (most of it ran in production in the first version); **[proposed]** is not built yet. §11.1 says where the app in `apps/` stands. Spec research (A2UI, json-render, MCP Apps, AG-UI) was verified on 2026-10-14; those projects are young, re-check before borrowing from them.
 
 ---
 
@@ -67,11 +67,11 @@ Recommendation: borrow the *shape* of json-render (flat map, Zod catalog, prompt
 
 Parts:
 
-| Part | Job | Status in Autocratico |
+| Part | Job | Status |
 | --- | --- | --- |
-| Host adapter | Talks to the host app with the user's own credentials, read-only | Not needed (data on disk) |
-| Discovery agent + Source Manifest | Learns what the host exposes; output reviewed by a human | [proposed] |
-| Query layer | A small typed DSL over manifest sources, executed with caps | [built] as fixed per-source queries; generic DSL [proposed] |
+| Host adapter | Talks to the host app with the user's own credentials, read-only | [built] REST and data files; GraphQL, SQL, MCP [proposed] |
+| Discovery agent + Source Manifest | Learns what the host exposes; output reviewed by a human | [built] |
+| Query layer | A small typed DSL over manifest sources, executed with caps | [built] |
 | Component catalog | Zod schemas + renderer + prompt text | [built] |
 | Chat agent | Read-only tools; answers with blocks | [built] |
 | Block pipeline | Extract, validate, normalise, keep for the web chat, degrade elsewhere | [built] |
@@ -160,18 +160,18 @@ const Manifest = z.object({
 Notes:
 
 - **Roles decide what the query layer allows:** only `dimension`/`time` fields can be `by`; only `measure` fields can be summed; `text` is never grouped; `reference` points to another source.
-- **Actions are navigation only.** The host's write endpoints are deliberately not attach points: a widget opens the host's own screen and the user acts there. (Autocratico: "never pay or submit on the user's behalf".) If you ever add mutations, each needs its own confirm step and server-side validation, like Autocratico's `change` block.
-- **Live refresh** matters: Autocratico pushes "which part changed" over `/api/events` and every view refreshes itself (polling only as fallback). Do the same; widgets that go stale feel broken.
+- **Actions are navigation only.** The host's write endpoints are deliberately not attach points: a widget opens the host's own screen and the user acts there. (Never pay or submit on the user's behalf.) If you ever add mutations, each needs its own confirm step and server-side validation.
+- **Live refresh** matters: push "which part changed" (e.g. over SSE) and let every view refresh itself, polling only as fallback; widgets that go stale feel broken.
 
 ---
 
 ## 5. Query layer
 
-### 5.1 What Autocratico does [built]
+### 5.1 What the first version did [built]
 
-Four hand-written query kinds (`deadlines`, `transactions`, `portfolio`, `cases`), each a strict Zod object with typed filters, plus a `SeriesQuery` that adds `by` and `measure`, and a `Value` that is a number, `{count: query}` or `{sum: query}`. Evaluation is shared code (`deadlineRows`, `widgetSeries`, `widgetValue`, `customData`), run in the browser over data it already has. Date buckets fill empty periods so charts have no gaps; date groupings sort ascending, others largest first; money rounded to cents.
+Hand-written query kinds, one per entity of its fixed data model, each a strict Zod object with typed filters, plus a `SeriesQuery` that adds `by` and `measure`, and a `Value` that is a number, `{count: query}` or `{sum: query}`. Evaluation is shared code (rows, series, value, custom data), run in the browser over data it already has. Date buckets fill empty periods so charts have no gaps; date groupings sort ascending, others largest first; money rounded to cents.
 
-### 5.2 Generic DSL [proposed]
+### 5.2 Generic DSL [built]
 
 Same idea, generated from the manifest so the agent cannot name a field that does not exist:
 
@@ -223,7 +223,7 @@ Same idea, generated from the manifest so the agent cannot name a field that doe
 }
 ```
 
-Rules enforced by the spec schema (Autocratico values, keep them):
+Rules enforced by the spec schema (values proven in production, keep them):
 
 - widget id `^[a-z0-9][a-z0-9-]{0,59}$` (kebab-case; same id = update), element id `^[a-z0-9][a-z0-9_-]{0,39}$`;
 - at most 40 elements, depth at most 8, children must exist, each element used once, no cycles; elements the root never reaches are dropped;
@@ -233,7 +233,7 @@ Rules enforced by the spec schema (Autocratico values, keep them):
 
 ### 6.2 Catalog [built]
 
-Small and composable beats large. Autocratico ships 14:
+Small and composable beats large. The first version shipped 14:
 
 - **Layout:** `Grid {columns?: 1-4}`, `Stack {direction?, gap?}`, `Section {title, description?}`.
 - **Text:** `Heading {text}`, `Text {text, muted?}` (Markdown), `Callout {tone: info|success|warning|danger, title?, text}`, `Separator`.
@@ -242,7 +242,7 @@ Small and composable beats large. Autocratico ships 14:
 
 Tomoe replaces the domain lists with generic ones: `Table {query, columns, limit?, empty?}`, `List {query, title, subtitle?, badge?, action?, limit?, empty?}` (fields of the query's source; `action` must be an action on that source's rows), `Countdown {query, label?}` (days to the first row from today on). Candidates for later: `Badge`, `Sparkline`. Add a component only when a real request could not be served.
 
-Rendering: the host app's design system components and tokens (Autocratico: shadcn + Tailwind v4 tokens), so widgets follow theme, palettes and dark mode for free. A renderer fallback shows "this widget cannot be shown" for anything unexpected.
+Rendering: the host app's design system components and tokens (e.g. shadcn + Tailwind v4 tokens), so widgets follow theme, palettes and dark mode for free. A renderer fallback shows "this widget cannot be shown" for anything unexpected.
 
 ### 6.3 Block pipeline [built]
 
@@ -261,7 +261,7 @@ web client ──► answerWidgets(answer): parse blocks again, one per id, last
 
 - **Stable JSON** (`widgetJson`: fixed key order) lets the client tell *new*, *changed* (same id, different JSON, with a Proposed/Current toggle) and *already added*.
 - **Confirmation lines** from the server are a separate trailing paragraph with an emoji prefix per kind, so clients render them as chips rather than prose.
-- [proposed] **Auto-repair:** on a validation error, feed it back to the agent once or twice before showing the user. Autocratico shows the error and lets the user re-ask; it works, but a silent retry is nicer.
+- [proposed] **Auto-repair:** on a validation error, feed it back to the agent once or twice before showing the user. Showing the error and letting the user re-ask works, but a silent retry is nicer ([built] in `apps/server`: one retry).
 
 ### 6.4 Editing a widget [built]
 
@@ -290,7 +290,7 @@ Only when the catalog cannot express the request, or the user explicitly wants s
 1. The agent first **asks to switch to creative mode**: two lines on what it would build and why components are not enough, ending with an empty ```` ```confirm ```` block; the client shows Yes/No. Code is written only after the user's latest message says yes.
 2. The proposal **does not run**. It shows what data it reads (source labels), its size, and the code (toggle). It runs only after **Run in sandbox**. Only code that ran can be added; code already on the board runs there (the user added it).
 
-Mark creative widgets visually (Autocratico: a brush on a purple-to-lime gradient, badge "Creative mode") so the user always knows which widgets are agent code.
+Mark creative widgets visually (a distinct icon and a "Creative" badge) so the user always knows which widgets are agent code.
 
 ### 7.2 Custom widget shape
 
@@ -399,7 +399,7 @@ No canvas or direct DOM (SVG + CSS cover charts and drawings). Timing and simila
 
 ### 8.1 Chat agent profile [built]
 
-Headless agent (Autocratico: `claude -p` with a tool allowlist in `dontAsk` mode). Allowed: read files/data, a few read-only scripts, web search on a domain allowlist. Denied: edit/write anywhere, secrets folders by path. For the generic app expose tools instead of files:
+Headless agent (`claude -p` with a tool allowlist in `dontAsk` mode). Allowed: read files/data, a few read-only scripts, web search on a domain allowlist. Denied: edit/write anywhere, secrets folders by path. For the generic app expose tools instead of files:
 
 - `describe_sources()` → the manifest (labels, fields, roles, enum values, actions);
 - `run_query(query)` → capped result (same DSL, same validation), so the agent can check its widget shows something sensible before proposing it;
@@ -447,7 +447,7 @@ Test: every catalog component and every source appears in the generated prompt.
 - **Board load resilience:** one invalid widget skipped, the others shown.
 - **Sandbox page:** exactly one inline script; its hash is in the CSP; all CSP copies agree; `default-src 'none'`, `connect-src 'none'`, `frame-src 'none'`, `object-src 'none'`, `form-action 'none'`, `base-uri 'none'`, `worker-src blob:`, `img-src data:` present.
 - **Exfiltration battery** (manual or Playwright): a local HTTP listener; custom widgets attempting each technique in §7.3; pass = zero hits.
-- **Demo backend shape tests:** if you ship a demo that fakes the API in the page (Autocratico does), test its responses against the same schemas so it cannot drift.
+- **Demo backend shape tests:** if you ship a demo that fakes the API in the page, test its responses against the same schemas so it cannot drift.
 - [proposed] **Discovery probes:** a fixture host (OpenAPI + seeded DB) whose manifest is snapshot-tested; drift test that removes a field and checks dependent widgets flip to "needs repair".
 
 ---
@@ -468,7 +468,7 @@ Test: every catalog component and every source appears in the generated prompt.
 
 Steps 1–6 are built in `apps/server` and `apps/web` for REST and "memory" sources (rows Tomoe keeps: the example, data files):
 
-- **Agent runtime.** Like Autocratico: Claude Code headless (`claude -p --output-format stream-json`) on the user's own subscription, translated to NDJSON chat events. Each run: `--setting-sources ""` and `--strict-mcp-config` (no user/repo settings, hooks or MCP servers), `--tools Read Glob Grep` (+ `WebFetch` only for the chat, only on the domains of links the user typed in that message), `--permission-mode dontAsk`, Bash/Edit/Write denied, the app's own JSON files and secrets-looking paths denied. Working folder: the app's `workspace/` (attachments); the connected repo via `--add-dir`.
+- **Agent runtime.** Claude Code headless (`claude -p --output-format stream-json`) on the user's own subscription, translated to NDJSON chat events. Each run: `--setting-sources ""` and `--strict-mcp-config` (no user/repo settings, hooks or MCP servers), `--tools Read Glob Grep` (+ `WebFetch` only for the chat, only on the domains of links the user typed in that message), `--permission-mode dontAsk`, Bash/Edit/Write denied, the app's own JSON files and secrets-looking paths denied. Working folder: the app's `workspace/` (attachments); the connected repo via `--add-dir`.
 - **§8.1 tools as MCP.** A dependency-free stdio MCP server (`apps/server/src/mcp.ts`) proxies to `/api/agent/:app/:tool` with a per-process token. Chat: `describe_sources`, `run_query` (validated with the generated schemas; ≤ 20 rows, sensitive values masked as `•••`), `distinct` (refused on sensitive and text fields), `read_board`. Discovery: `http_get` (backend origin or the OpenAPI URL only, 20 KB) and `check_manifest` (schema + probe).
 - **Recon (§4.1, before any agent).** Given one URL (website, web app or API), the server GETs well-known places on its origin: `/.well-known/tomoe.json`, `/llms.txt` and `/llms-full.txt`, OpenAPI/Swagger in a dozen usual paths and behind `rel="service-desc"` links or `Link` headers (RFC 8631), `/.well-known/ai-plugin.json`, MCP server cards and `/mcp`, GraphQL introspection over GET, robots and sitemap. The report fills the connection (API base, OpenAPI document, website, name) and goes into the discovery prompt as data.
 - **Tomoe-ready apps.** `/.well-known/tomoe.json` (`packages/core/src/wellknown.ts`; JSON Schema in `skills/tomoe-ready/references`) names the API, the OpenAPI document, the web UI base for actions, `llms.txt`, MCP, how to authenticate, and a manifest inline or by URL. With a valid manifest, connecting skips the agent: probe, review, accept. The `tomoe-ready` skill (skills.sh) adds all of it to a host app.
@@ -479,21 +479,21 @@ Steps 1–6 are built in `apps/server` and `apps/web` for REST and "memory" sour
 - **Board.** One file per app, history of previous boards for Undo (50 kept), same validation on save and load.
 - **Not built.** GraphQL, SQL and MCP adapters (their sources show as not available); drift detection; the exfiltration battery against this web client.
 
-## 12. Reference: where each idea lives in Autocratico
+## 12. Reference: where each idea lives in this repository
 
 | Idea | File |
 | --- | --- |
-| Catalog, queries, spec validation, custom widget schema, code pre-check, sandbox CSP and messages, agent instructions | `packages/core/src/widgets.ts` |
-| Block extraction, confirm blocks, hiding unfinished blocks while streaming | `packages/core/src/actions.ts` |
-| Server-side validation of proposals, per-channel output | `apps/server/src/chat-actions.ts` (`finishAnswer`) |
-| Board storage, commits, resilient load | `apps/server/src/board.ts` |
-| Board routes, `about: widget:<id>` context, sandbox route and headers | `apps/server/src/app.ts` |
-| Agent tool profiles | `apps/server/src/claude.ts` (`tools`) |
-| Declarative renderer | `apps/web/src/components/widget.tsx` |
-| Proposal card, run gate | `apps/web/src/components/widget-proposal.tsx` |
-| Sandbox host side | `apps/web/src/components/sandbox-frame.tsx` |
-| Sandbox page (sanitiser, worker prelude, protocol) | `apps/web/public/sandbox/widget.html` |
-| Board state shared by view and chat | `apps/web/src/lib/board.tsx`, `apps/web/src/views/board.tsx` |
-| Creative mode mark | `apps/web/src/components/creative.tsx` |
-| CSP hash test | `apps/web/test/sandbox.test.ts` |
-| Design notes and research | `docs/generative-ui.md` |
+| Source Manifest, action paths | `packages/core/src/manifest.ts` |
+| Query DSL generated per manifest, evaluation | `packages/core/src/query.ts`, `packages/core/src/evaluate.ts` |
+| Catalog (props schema + prompt line), widgets, code pre-check, board load | `packages/core/src/catalog.ts`, `packages/core/src/widget.ts` |
+| Blocks in answers, hiding unfinished blocks while streaming | `packages/core/src/blocks.ts` |
+| Agent instructions from catalog and manifest | `packages/core/src/prompt.ts` |
+| Sandbox CSP, headers, frame messages; the sandbox page | `packages/core/src/sandbox.ts`, `packages/core/sandbox/widget.html` |
+| `/.well-known/tomoe.json`, published JSON Schemas | `packages/core/src/wellknown.ts`, `skills/tomoe-ready/references/` |
+| Agent runner and tool profile | `apps/server/src/claude.ts` |
+| Agent tools over MCP, prompts, discovery | `apps/server/src/mcp.ts`, `apps/server/src/agent.ts` |
+| Recon on a URL | `apps/server/src/recon.ts` |
+| Host adapter, data files | `apps/server/src/adapter.ts`, `apps/server/src/infer.ts` |
+| Board with Undo, chats, routes and guards | `apps/server/src/store.ts`, `apps/server/src/app.ts` |
+| Declarative renderer, proposal card and run gate, sandbox host side | `apps/web/src/components/widget-view.tsx`, `proposal.tsx`, `sandbox-frame.tsx` |
+| CSP hash test | `packages/core/test/sandbox.test.ts` |

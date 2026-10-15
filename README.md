@@ -1,21 +1,32 @@
 # Tomoe
 
+[![CI](https://github.com/davide97g/tomoe/actions/workflows/ci.yml/badge.svg)](https://github.com/davide97g/tomoe/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![skills.sh](https://img.shields.io/badge/skills.sh-tomoe-27407a)](https://skills.sh/davide97g/tomoe)
+
 A chat that designs dashboards and widgets on top of any app.
 
-Tomoe looks at an app (its API, database or MCP server), writes down what it can attach to in a **Source Manifest**, and lets a chat agent design widgets on that data: declarative specs from a component catalog first, free code in a sandbox ("creative mode") when the catalog is not enough. Widgets hold queries, never data; the agent is read-only; the user adds what they like.
+Tomoe looks at an app (its website, API, OpenAPI document, MCP server or code), writes down what it can attach to in a **Source Manifest**, and lets a chat agent design widgets on that data: declarative specs from a component catalog first, free code in a sandbox ("creative mode") when the catalog is not enough. Widgets hold queries, never data; the agent is read-only; the user adds what they like. The agent is Claude Code, running headless on your own Claude subscription.
 
-Distilled from the Board of [Autocratico](../autocratico) (generative UI and the custom-widget sandbox, October 2026).
+## Skills
+
+Two [agent skills](https://skills.sh), installable with the `skills` CLI into Claude Code, Codex, Cursor and other agents:
+
+| Skill | For | Install |
+| --- | --- | --- |
+| `tomoe-ready` | **Your app.** Adds what Tomoe looks for, read-only: `/.well-known/tomoe.json`, a Source Manifest, an OpenAPI document for the read endpoints, `llms.txt`. Tomoe then connects from a single URL, without guessing. | `npx skills add davide97g/tomoe --skill tomoe-ready` |
+| `tomoe` | **Building with Tomoe.** Discovery and manifests, widget specs from the catalog, the sandbox, the full spec (`references/blueprint.md`). | `npx skills add davide97g/tomoe --skill tomoe` |
+
+After installing `tomoe-ready` in your app's repo, ask your agent: *"Make this app Tomoe-ready."*
 
 ## Layout
 
 - `skills/tomoe/` — the agent skill (`SKILL.md`) and the full spec, `references/blueprint.md` (also at `docs/blueprint.md`).
-- `skills/tomoe-ready/` — the skill for *your* app: makes it ready to connect (`/.well-known/tomoe.json`, a manifest, OpenAPI, `llms.txt`). Install it in your app's repo with `npx skills add davide97g/tomoe --skill tomoe-ready`, then ask your agent "Make this app Tomoe-ready".
+- `skills/tomoe-ready/` — the skill for your app (above), with the JSON Schemas of the manifest and of `/.well-known/tomoe.json` in `references/`.
 - `packages/core/` — reference implementation: manifest, query DSL generated from it, evaluation, component catalog, widget specs, chat blocks, agent prompt, sandbox page and its CSP. See its README.
-- `apps/server/` — the chat server (Hono, Node 24): runs Claude Code headless (`claude -p`) on your own Claude subscription, as Autocratico does; gives the agent read-only MCP tools on the data; reads the host (GET only); keeps apps, boards (with Undo) and chats under `var/`.
+- `apps/server/` — the chat server (Hono, Node 24): runs Claude Code headless (`claude -p`) on your own Claude subscription; gives the agent read-only MCP tools on the data; reads the host (GET only); keeps apps, boards (with Undo) and chats under `var/`.
 - `apps/web/` — the web client (Vite, React, Tailwind v4): a full-screen chat that docks beside the board, live widget previews, the sandbox frame, connect/discover/review dialogs.
 - `examples/shop/` — a made-up shop: manifest, rows, a widget, seeded data (`data.ts`) and a read-only API with an OpenAPI document (`server.ts`).
 
-## Commands
+## Run it
 
 ```
 pnpm install
@@ -41,3 +52,11 @@ Keys: `B` board, `P` privacy, `Esc` stop the answer.
 ## Status
 
 Built and tested: core and sandbox, chat server and agent (on the Claude subscription), REST and "memory" (data file) adapters, discovery with probe and review, web client (renderer, proposals, board with Undo, sandbox frame). Recon on a URL and the tomoe-ready path: built and tested. Not built yet: GraphQL, SQL and MCP adapters (recon reports them, rows cannot be read yet); drift detection; the exfiltration battery re-run against this web client (blueprint §7.3) before anyone else uses creative mode.
+
+## Contributing
+
+Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities privately ([SECURITY.md](SECURITY.md)). This project follows a [code of conduct](CODE_OF_CONDUCT.md).
+
+## License
+
+[MIT](LICENSE): free to use, change and share, for any purpose, commercial included.

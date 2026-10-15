@@ -1,0 +1,10 @@
+name: Idea
+description: A component, an adapter, a change to how Tomoe works.
+labels: [enhancement]
+body:
+  - type: textarea
+    attributes:
+      label: What you want to do
+      description: The request a user would make, and why the current components or adapters cannot serve it.
+    validations:
+      required: true

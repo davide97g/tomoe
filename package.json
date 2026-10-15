@@ -3,6 +3,24 @@
   "private": true,
   "type": "module",
   "description": "A chat that designs dashboards and widgets on top of any app.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davide97g/tomoe.git"
+  },
+  "homepage": "https://github.com/davide97g/tomoe#readme",
+  "bugs": "https://github.com/davide97g/tomoe/issues",
+  "keywords": [
+    "generative-ui",
+    "dashboard",
+    "widgets",
+    "claude",
+    "claude-code",
+    "agent-skills",
+    "mcp",
+    "openapi",
+    "llms-txt"
+  ],
   "packageManager": "pnpm@11.13.0",
   "engines": {
     "node": ">=24"

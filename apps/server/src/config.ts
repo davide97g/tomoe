@@ -4,7 +4,7 @@
  * reached with the user's own credentials.
  */
 import { execFileSync } from "node:child_process"
-import { existsSync, mkdirSync } from "node:fs"
+import { existsSync, mkdirSync, readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
 export type Config = {
@@ -32,6 +32,17 @@ function which(cmd: string): string | null {
   }
 }
 
+/** "owner/name" of the GitHub repository in the root package.json, where the skills are published. */
+function repoSlug(root: string): string {
+  try {
+    const pkg = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"))
+    const url = typeof pkg.repository === "string" ? pkg.repository : String(pkg.repository?.url ?? "")
+    return url.match(/github\.com[/:]([^/]+\/[^/.]+)/)?.[1] ?? url.replace(/^github:/, "")
+  } catch {
+    return ""
+  }
+}
+
 export function loadConfig(env = process.env): Config {
   const root = resolve(import.meta.dirname, "../../..")
   const data = resolve(env.TOMOE_DATA || resolve(root, "var"))
@@ -45,6 +56,6 @@ export function loadConfig(env = process.env): Config {
     claude: claude && existsSync(claude) ? claude : null,
     web: resolve(root, "apps/web/dist"),
     sandbox: resolve(root, "packages/core/sandbox/widget.html"),
-    skillRepo: env.TOMOE_SKILL_REPO || "davide97g/tomoe",
+    skillRepo: env.TOMOE_SKILL_REPO || repoSlug(root),
   }
 }

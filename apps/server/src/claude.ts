@@ -1,6 +1,6 @@
 /**
  * Runs Claude Code headless (`claude -p`, the unmodified binary on the user's own Claude subscription)
- * and turns its stream into simple chat events; the same way Autocratico's chat does. Security-sensitive:
+ * and turns its stream into simple chat events. Security-sensitive:
  * the tool profiles below are what keeps the agents read-only, enforced by Claude Code's permissions,
  * not by the prompt.
  *

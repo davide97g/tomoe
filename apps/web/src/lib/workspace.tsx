@@ -72,7 +72,7 @@ const store = (key: string, value: string) => {
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = React.useState(false)
   const [claude, setClaude] = React.useState(true)
-  const [skillRepo, setSkillRepo] = React.useState("davide97g/tomoe")
+  const [skillRepo, setSkillRepo] = React.useState("")
   const [today, setToday] = React.useState(() => new Date().toLocaleDateString("en-CA"))
   const [apps, setApps] = React.useState<AppRecord[]>([])
   const [appId, setAppId] = React.useState<string>(() => stored("tomoe:app") ?? "playground")
