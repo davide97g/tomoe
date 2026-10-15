@@ -1,0 +1,75 @@
+{
+  "title": "Tomoe discovery document (/.well-known/tomoe.json)",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "tomoe": {
+      "type": "number",
+      "const": 1
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 80
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000
+    },
+    "api": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "openapi": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "manifest": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 500
+        },
+        {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {}
+        }
+      ]
+    },
+    "app": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "llms": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "mcp": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "auth": {
+      "type": "object",
+      "properties": {
+        "header": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "scheme": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "docs": {
+          "type": "string",
+          "maxLength": 500
+        }
+      }
+    }
+  },
+  "required": [
+    "tomoe"
+  ],
+  "additionalProperties": {}
+}

@@ -1,0 +1,16 @@
+{
+  "id": "orders-6-months",
+  "title": "Orders, 6 months",
+  "size": "medium",
+  "spec": {
+    "root": "main",
+    "elements": {
+      "main": { "type": "Stack", "children": ["kpis", "chart", "latest"] },
+      "kpis": { "type": "Grid", "props": { "columns": 2 }, "children": ["open", "revenue"] },
+      "open": { "type": "Metric", "props": { "label": "Open", "value": { "from": "orders", "where": [{ "field": "status", "op": "eq", "value": "open" }], "measure": { "op": "count" } } } },
+      "revenue": { "type": "Metric", "props": { "label": "Revenue", "format": "money", "value": { "from": "orders", "window": { "last": { "months": 6 } }, "where": [{ "field": "status", "op": "ne", "value": "refunded" }], "measure": { "op": "sum", "field": "total" } } } },
+      "chart": { "type": "Chart", "props": { "kind": "bar", "series": { "from": "orders", "window": { "last": { "months": 6 } }, "by": { "field": "created_at", "bucket": "month" }, "measure": { "op": "sum", "field": "total" } } } },
+      "latest": { "type": "List", "props": { "query": { "from": "orders", "sort": { "field": "created_at", "dir": "desc" }, "limit": 5 }, "title": "id", "subtitle": "created_at", "badge": "status", "action": "open-order" } }
+    }
+  }
+}

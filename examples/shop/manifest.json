@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "app": { "name": "Example Shop", "description": "A made-up online shop: orders, customers, products.", "locale": "en-GB", "currency": "EUR" },
+  "sources": [
+    {
+      "id": "orders",
+      "label": "Orders",
+      "description": "Every order placed in the shop.",
+      "origin": { "kind": "rest", "method": "GET", "path": "/api/orders", "pagination": "cursor" },
+      "key": "id",
+      "time": "created_at",
+      "fields": [
+        { "name": "id", "label": "Order", "type": "string", "role": "id" },
+        { "name": "created_at", "label": "Placed on", "type": "date", "role": "time" },
+        { "name": "status", "label": "Status", "type": "enum", "role": "dimension", "values": ["open", "paid", "shipped", "refunded"] },
+        { "name": "channel", "label": "Channel", "type": "enum", "role": "dimension", "values": ["web", "app", "store"] },
+        { "name": "total", "label": "Total", "type": "number", "role": "measure", "unit": "currency:EUR", "sensitive": true },
+        { "name": "customer_id", "label": "Customer", "type": "string", "role": "reference" },
+        { "name": "note", "label": "Note", "type": "string", "role": "text", "sensitive": true }
+      ],
+      "relations": [{ "field": "customer_id", "to": "customers" }]
+    },
+    {
+      "id": "customers",
+      "label": "Customers",
+      "origin": { "kind": "sql", "table": "public.customers" },
+      "key": "id",
+      "time": "signed_up",
+      "fields": [
+        { "name": "id", "label": "Customer", "type": "string", "role": "id" },
+        { "name": "name", "label": "Name", "type": "string", "role": "text", "sensitive": true },
+        { "name": "country", "label": "Country", "type": "enum", "role": "dimension", "values": ["IT", "FR", "DE", "ES"] },
+        { "name": "signed_up", "label": "Signed up", "type": "date", "role": "time" }
+      ]
+    }
+  ],
+  "actions": [
+    { "id": "open-order", "label": "Open order", "kind": "navigate", "target": "/orders/{id}", "source": "orders", "params": { "id": "id" } },
+    { "id": "orders", "label": "All orders", "kind": "navigate", "target": "/orders" }
+  ],
+  "refresh": { "kind": "poll", "seconds": 60 }
+}

@@ -1,0 +1,227 @@
+@import "tailwindcss";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+@import "@fontsource/shippori-mincho-b1/500.css";
+@import "@fontsource/shippori-mincho-b1/700.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Aizome: indigo ink on cool porcelain, with kihada (phellodendron yellow) as the one warm accent,
+ * kept for what the agent is doing right now and for creative mode. Every name below is also what
+ * the sandbox receives (SANDBOX_TOKENS), so custom widgets follow the theme.
+ */
+:root {
+  --background: #eef1f5;
+  --card: #fbfcfd;
+  --card-foreground: #121a2e;
+  --foreground: #121a2e;
+  --muted: #e3e8ef;
+  --muted-foreground: #5a6478;
+  --border: #d3dae4;
+  --primary: #27407a;
+  --primary-foreground: #f4f6fb;
+  --kihada: #e2b33a;
+  --kihada-foreground: #2b2006;
+  --chart-1: #27407a;
+  --chart-2: #2f8c83;
+  --chart-3: #d9a21e;
+  --chart-4: #9a4f86;
+  --chart-5: #7c8aa3;
+  --positive: #2f8c6a;
+  --negative: #c2453b;
+  --warning: #b97c0c;
+  --radius: 0.75rem;
+  --shadow: 0 1px 0 rgb(18 26 46 / 0.04), 0 8px 24px -12px rgb(18 26 46 / 0.18);
+}
+
+.dark {
+  --background: #0b1020;
+  --card: #121a2f;
+  --card-foreground: #e4e9f3;
+  --foreground: #e4e9f3;
+  --muted: #1a2440;
+  --muted-foreground: #8d98b3;
+  --border: #233052;
+  --primary: #8ea8f0;
+  --primary-foreground: #0b1020;
+  --kihada: #f2c44d;
+  --kihada-foreground: #231a04;
+  --chart-1: #8ea8f0;
+  --chart-2: #5cc2b5;
+  --chart-3: #f2c44d;
+  --chart-4: #d08ac0;
+  --chart-5: #9aa6bf;
+  --positive: #5cc29a;
+  --negative: #ef7a6e;
+  --warning: #f2c44d;
+  --shadow: 0 1px 0 rgb(0 0 0 / 0.2), 0 12px 32px -16px rgb(0 0 0 / 0.6);
+}
+
+@theme inline {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --font-display: "Shippori Mincho B1", "Hiragino Mincho ProN", ui-serif, serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-kihada: var(--kihada);
+  --color-kihada-foreground: var(--kihada-foreground);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --color-warning: var(--warning);
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.5);
+  --radius-2xl: calc(var(--radius) * 2);
+  --shadow-soft: var(--shadow);
+  --animate-spin-slow: spin 2.4s linear infinite;
+  --animate-rise: rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-fade: fade 300ms ease-out both;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--kihada) 45%, transparent);
+  }
+}
+
+/* The swirl drawn by the hero and the working mark: it spins while the agent works. */
+.tomoe-turn {
+  transition: transform 1.2s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+.tomoe-working {
+  animation: spin 2.4s linear infinite;
+}
+
+/* Masked values in privacy mode. */
+.masked {
+  filter: blur(6px);
+  user-select: none;
+}
+
+.prose-chat > :first-child {
+  margin-top: 0;
+}
+.prose-chat > :last-child {
+  margin-bottom: 0;
+}
+.prose-chat p {
+  margin: 0.55em 0;
+  line-height: 1.6;
+}
+.prose-chat ul,
+.prose-chat ol {
+  margin: 0.5em 0;
+  padding-left: 1.25em;
+}
+.prose-chat ul {
+  list-style: disc;
+}
+.prose-chat ol {
+  list-style: decimal;
+}
+.prose-chat li {
+  margin: 0.2em 0;
+}
+.prose-chat strong {
+  font-weight: 600;
+}
+.prose-chat code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--muted);
+  padding: 0.1em 0.35em;
+  border-radius: 0.3rem;
+}
+.prose-chat pre {
+  background: var(--muted);
+  padding: 0.75rem;
+  border-radius: var(--radius);
+  overflow-x: auto;
+  font-size: 0.8rem;
+}
+.prose-chat pre code {
+  background: none;
+  padding: 0;
+}
+.prose-chat a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-chat table {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin: 0.6em 0;
+}
+.prose-chat th,
+.prose-chat td {
+  border-bottom: 1px solid var(--border);
+  padding: 0.35em 0.6em;
+  text-align: left;
+}
+.prose-chat h1,
+.prose-chat h2,
+.prose-chat h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  margin: 0.9em 0 0.4em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

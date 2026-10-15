@@ -1,0 +1,20 @@
+{
+  "name": "tomoe",
+  "private": true,
+  "type": "module",
+  "description": "A chat that designs dashboards and widgets on top of any app.",
+  "packageManager": "pnpm@11.13.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @tomoe/web dev",
+    "build": "pnpm --filter @tomoe/web build",
+    "start": "node apps/server/src/main.ts",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "example": "node examples/shop/run.ts",
+    "example:server": "node examples/shop/server.ts",
+    "schema": "pnpm --filter @tomoe/core schema"
+  }
+}

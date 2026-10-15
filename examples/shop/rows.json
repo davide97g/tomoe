@@ -1,0 +1,14 @@
+{
+  "orders": [
+    { "id": "o-1", "created_at": "2026-05-03", "status": "shipped", "channel": "web", "total": 120.5, "customer_id": "c-1", "note": null },
+    { "id": "o-2", "created_at": "2026-07-14", "status": "paid", "channel": "app", "total": 80, "customer_id": "c-2", "note": "gift wrap" },
+    { "id": "o-3", "created_at": "2026-08-21", "status": "refunded", "channel": "web", "total": 45, "customer_id": "c-1", "note": null },
+    { "id": "o-4", "created_at": "2026-09-30", "status": "open", "channel": "store", "total": 210, "customer_id": "c-3", "note": null },
+    { "id": "o-5", "created_at": "2026-10-10", "status": "open", "channel": "web", "total": 64.9, "customer_id": "c-2", "note": "call first" }
+  ],
+  "customers": [
+    { "id": "c-1", "name": "Ada Example", "country": "IT", "signed_up": "2025-11-02" },
+    { "id": "c-2", "name": "Bob Sample", "country": "FR", "signed_up": "2026-02-17" },
+    { "id": "c-3", "name": "Cleo Placeholder", "country": "IT", "signed_up": "2026-09-01" }
+  ]
+}
