@@ -1,67 +1,96 @@
 @import "tailwindcss";
-@import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
-@import "@fontsource/shippori-mincho-b1/500.css";
-@import "@fontsource/shippori-mincho-b1/700.css";
 
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Aizome: indigo ink on cool porcelain, with kihada (phellodendron yellow) as the one warm accent,
- * kept for what the agent is doing right now and for creative mode. Every name below is also what
- * the sandbox receives (SANDBOX_TOKENS), so custom widgets follow the theme.
+ * Fonts (src/fonts, OFL 1.1, licences beside them): Zalando Sans (body, UI) and Zalando Sans Expanded
+ * (display, tracked labels), converted to woff2 unchanged; Zen Kaku Gothic New Medium subset to the
+ * brand's kana and kanji (巴ともえ); Geist Mono (fontsource) for numbers and code.
+ */
+@font-face {
+  font-family: "Zalando Sans";
+  src: url("./fonts/ZalandoSans.woff2") format("woff2-variations");
+  font-weight: 200 900;
+  font-stretch: 75% 125%;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Zen Kaku Gothic New";
+  src: url("./fonts/ZenKakuGothicNew-tomoe.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: block;
+  unicode-range: U+5DF4, U+3068, U+3082, U+3048;
+}
+@font-face {
+  font-family: "Zalando Sans Expanded";
+  src: url("./fonts/ZalandoSansExpanded.woff2") format("woff2-variations");
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/*
+ * Sumi on washi: ink on warm paper, one stone grey as the accent, colour kept for status only and
+ * desaturated. Every name below that is in SANDBOX_TOKENS is also what custom widgets receive, so they
+ * follow the theme: do not rename them.
  */
 :root {
-  --background: #eef1f5;
-  --card: #fbfcfd;
-  --card-foreground: #121a2e;
-  --foreground: #121a2e;
-  --muted: #e3e8ef;
-  --muted-foreground: #5a6478;
-  --border: #d3dae4;
-  --primary: #27407a;
-  --primary-foreground: #f4f6fb;
-  --kihada: #e2b33a;
-  --kihada-foreground: #2b2006;
-  --chart-1: #27407a;
-  --chart-2: #2f8c83;
-  --chart-3: #d9a21e;
-  --chart-4: #9a4f86;
-  --chart-5: #7c8aa3;
-  --positive: #2f8c6a;
-  --negative: #c2453b;
-  --warning: #b97c0c;
-  --radius: 0.75rem;
-  --shadow: 0 1px 0 rgb(18 26 46 / 0.04), 0 8px 24px -12px rgb(18 26 46 / 0.18);
+  --background: #f6f4ee;
+  --card: #fdfcf9;
+  --card-foreground: #111111;
+  --foreground: #111111;
+  --muted: #ece8e0;
+  --muted-foreground: #6b6760;
+  --border: #dcd6cb;
+  --primary: #111111;
+  --primary-foreground: #f6f4ee;
+  --accent: #beb8ad;
+  --accent-foreground: #111111;
+  --chart-1: #1a1a1a;
+  --chart-2: #57534d;
+  --chart-3: #8a857c;
+  --chart-4: #b3ada2;
+  --chart-5: #d3cdc2;
+  --positive: #4e7358;
+  --negative: #a4493d;
+  --warning: #96732f;
+  --radius: 0.625rem;
+  --shadow: 0 1px 0 rgb(17 17 17 / 0.03), 0 12px 32px -20px rgb(17 17 17 / 0.22);
+  --grain-opacity: 0.05;
 }
 
 .dark {
-  --background: #0b1020;
-  --card: #121a2f;
-  --card-foreground: #e4e9f3;
-  --foreground: #e4e9f3;
-  --muted: #1a2440;
-  --muted-foreground: #8d98b3;
-  --border: #233052;
-  --primary: #8ea8f0;
-  --primary-foreground: #0b1020;
-  --kihada: #f2c44d;
-  --kihada-foreground: #231a04;
-  --chart-1: #8ea8f0;
-  --chart-2: #5cc2b5;
-  --chart-3: #f2c44d;
-  --chart-4: #d08ac0;
-  --chart-5: #9aa6bf;
-  --positive: #5cc29a;
-  --negative: #ef7a6e;
-  --warning: #f2c44d;
-  --shadow: 0 1px 0 rgb(0 0 0 / 0.2), 0 12px 32px -16px rgb(0 0 0 / 0.6);
+  --background: #151412;
+  --card: #1c1b18;
+  --card-foreground: #ece9e2;
+  --foreground: #ece9e2;
+  --muted: #252320;
+  --muted-foreground: #9b968c;
+  --border: #33302b;
+  --primary: #ece9e2;
+  --primary-foreground: #151412;
+  --accent: #6f6a61;
+  --accent-foreground: #ece9e2;
+  --chart-1: #ece9e2;
+  --chart-2: #b7b1a6;
+  --chart-3: #8a857c;
+  --chart-4: #625e56;
+  --chart-5: #46433d;
+  --positive: #8fb398;
+  --negative: #d98a7d;
+  --warning: #cfae6c;
+  --shadow: 0 1px 0 rgb(0 0 0 / 0.25), 0 16px 40px -20px rgb(0 0 0 / 0.7);
+  --grain-opacity: 0.06;
 }
 
 @theme inline {
-  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Zalando Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, monospace;
-  --font-display: "Shippori Mincho B1", "Hiragino Mincho ProN", ui-serif, serif;
+  --font-display: "Zalando Sans Expanded", "Zalando Sans", ui-sans-serif, sans-serif;
+  --font-jp: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -71,8 +100,8 @@
   --color-border: var(--border);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
-  --color-kihada: var(--kihada);
-  --color-kihada-foreground: var(--kihada-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -84,21 +113,29 @@
   --radius-sm: calc(var(--radius) * 0.5);
   --radius-md: calc(var(--radius) * 0.75);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.5);
+  --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 2);
   --shadow-soft: var(--shadow);
+  --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --animate-spin-slow: spin 2.4s linear infinite;
-  --animate-rise: rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  --animate-fade: fade 300ms ease-out both;
+  --animate-rise: rise 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-fade: fade 320ms ease-out both;
+  --animate-pop: pop 380ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-shake: shake 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  --animate-enter-right: enter-right 460ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-enter-left: enter-left 460ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 
   @keyframes rise {
     from {
       opacity: 0;
-      transform: translateY(8px);
+      transform: translateY(10px);
+      filter: blur(2px);
     }
     to {
       opacity: 1;
       transform: none;
+      filter: none;
     }
   }
   @keyframes fade {
@@ -106,6 +143,58 @@
       opacity: 0;
     }
   }
+  @keyframes pop {
+    0% {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  @keyframes shake {
+    10%,
+    90% {
+      transform: translateX(-1px);
+    }
+    20%,
+    80% {
+      transform: translateX(2px);
+    }
+    30%,
+    50%,
+    70% {
+      transform: translateX(-3px);
+    }
+    40%,
+    60% {
+      transform: translateX(3px);
+    }
+  }
+  @keyframes enter-right {
+    from {
+      opacity: 0;
+      transform: translate(14px, 6px) scale(0.97);
+    }
+  }
+  @keyframes enter-left {
+    from {
+      opacity: 0;
+      transform: translate(-8px, 6px);
+    }
+  }
+}
+
+/* Small uppercase labels with wide tracking: the concept-sheet voice ("CONCEPT", "WEIGHT"). */
+@utility label-caps {
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
 }
 
 @layer base {
@@ -122,15 +211,47 @@
     color: var(--foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
-    font-feature-settings: "ss01", "cv11";
+    font-feature-settings: "kern", "calt";
   }
   :focus-visible {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
+    outline: 1.5px solid var(--foreground);
+    outline-offset: 3px;
+    border-radius: 4px;
+    transition: outline-offset 160ms ease-out;
   }
   ::selection {
-    background: color-mix(in oklab, var(--kihada) 45%, transparent);
+    background: var(--foreground);
+    color: var(--background);
   }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--foreground) 14%, transparent);
+    border: 3px solid transparent;
+    background-clip: padding-box;
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in oklab, var(--foreground) 28%, transparent);
+  }
+}
+
+/* Paper grain over the whole app: a fixed noise layer, quiet in both themes. */
+.paper::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+.dark .paper::after {
+  mix-blend-mode: screen;
+  filter: invert(1);
 }
 
 /* The swirl drawn by the hero and the working mark: it spins while the agent works. */
@@ -141,10 +262,384 @@
   animation: spin 2.4s linear infinite;
 }
 
+/* Landing: a dotted grid that breathes, darker dots around the pointer, a slow mitsudomoe. */
+.dot-field {
+  --dot: color-mix(in oklab, var(--foreground) 16%, transparent);
+  --dot-strong: color-mix(in oklab, var(--foreground) 55%, transparent);
+  position: absolute;
+  inset: -40px;
+  pointer-events: none;
+  background-image: radial-gradient(circle at center, var(--dot) 1px, transparent 1.3px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse 70% 62% at 50% 46%, #000 20%, transparent 78%);
+  animation:
+    breathe 9s ease-in-out infinite,
+    drift 60s linear infinite;
+}
+.dot-field::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at center, var(--dot-strong) 1.25px, transparent 1.6px);
+  background-size: inherit;
+  background-position: inherit;
+  opacity: var(--lens, 0);
+  transition: opacity 600ms ease-out;
+  mask-image: radial-gradient(circle 150px at var(--mx, 50%) var(--my, 50%), #000, transparent 100%);
+}
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes drift {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 22px 44px;
+  }
+}
+
+/* A short rule that draws itself under a heading (the reference's underline accent). */
+.rule-draw {
+  display: block;
+  height: 1.5px;
+  width: 2.5rem;
+  background: var(--foreground);
+  transform-origin: left;
+  animation: rule 900ms 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes rule {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* Press feedback: an ink ripple from the pointer. */
+.ripple {
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  background: currentColor;
+  opacity: 0.18;
+  transform: translate(-50%, -50%) scale(0);
+  animation: ripple 560ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+@keyframes ripple {
+  to {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
+}
+
+/* Loading: a sheen moving over a muted block. */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  background: var(--muted);
+}
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--card) 75%, transparent), transparent);
+  animation: sheen 1.6s ease-in-out infinite;
+}
+@keyframes sheen {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* The gauge: an outlined track with an ink fill, after the reference's weight gauge. */
+.gauge {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklab, var(--foreground) 70%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--card) 60%, transparent);
+}
+.gauge > i {
+  position: absolute;
+  inset: 1.5px auto 1.5px 1.5px;
+  border-radius: 999px;
+  background: var(--foreground);
+  transition: width 900ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.gauge[data-indeterminate] > i {
+  width: 38%;
+  animation: gauge-run 1.5s cubic-bezier(0.6, 0, 0.3, 1) infinite;
+}
+@keyframes gauge-run {
+  0% {
+    left: -38%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* The live answer: a block caret after the last line. */
+.streaming-caret > :last-child:not(ul, ol, pre, table)::after,
+.streaming-caret > :is(ul, ol):last-child > li:last-child::after {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: -0.17em;
+  background: var(--foreground);
+  border-radius: 1px;
+  animation: caret 1s steps(2, jump-none) infinite;
+}
+@keyframes caret {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Done: a check drawn in one stroke inside a ring that settles. */
+.check-draw path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: draw 520ms 120ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+.check-draw circle {
+  transform-origin: center;
+  animation: ring 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes ring {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+}
+/* A burst of ink dots around a success. */
+.burst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.burst > i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px;
+  border-radius: 999px;
+  background: var(--foreground);
+  animation: burst 640ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+@keyframes burst {
+  0% {
+    transform: rotate(var(--a)) translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(var(--a)) translateY(-22px) scale(0.2);
+    opacity: 0;
+  }
+}
+
+/* Error: an underline that wipes in under the message. */
+.error-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0 1px;
+  animation: underline 700ms 160ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+@keyframes underline {
+  to {
+    background-size: 100% 1px;
+  }
+}
+
+/* Staggered entrances: children rise one after another. */
+.stagger > * {
+  animation: rise 560ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.stagger > *:nth-child(2) {
+  animation-delay: 60ms;
+}
+.stagger > *:nth-child(3) {
+  animation-delay: 120ms;
+}
+.stagger > *:nth-child(4) {
+  animation-delay: 180ms;
+}
+.stagger > *:nth-child(5) {
+  animation-delay: 240ms;
+}
+.stagger > *:nth-child(6) {
+  animation-delay: 300ms;
+}
+.stagger > *:nth-child(7) {
+  animation-delay: 360ms;
+}
+.stagger > *:nth-child(n + 8) {
+  animation-delay: 420ms;
+}
+
+@keyframes composer-flash {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.025);
+  }
+}
+@keyframes saved-glow {
+  0% {
+    box-shadow:
+      0 0 0 0 color-mix(in oklab, var(--foreground) 35%, transparent),
+      var(--shadow);
+  }
+  100% {
+    box-shadow:
+      0 0 0 10px transparent,
+      var(--shadow);
+  }
+}
+@keyframes settings-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+    filter: blur(3px);
+  }
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+}
+
+/* Mascot placeholder motions (the sprite player brings its own frames). */
+@keyframes mascot-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+@keyframes mascot-walk {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(-2px) rotate(3deg);
+  }
+}
+@keyframes mascot-jump {
+  0%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  20% {
+    transform: translateY(0) scale(1.08, 0.92);
+  }
+  50% {
+    transform: translateY(-14px) scale(0.96, 1.04);
+  }
+}
+@keyframes mascot-z {
+  0% {
+    opacity: 0;
+    transform: translate(0, 4px);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(6px, -8px);
+  }
+}
+
+/* Theme switch: the new theme spreads from the toggle as a circle (View Transitions). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* Toasts: paper cards with a thin rule, the status shown by a short ink mark on the left. */
+[data-sonner-toaster] [data-sonner-toast] {
+  font-family: var(--font-sans);
+  border-radius: calc(var(--radius) * 1.2);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: var(--shadow);
+  padding-left: 18px;
+}
+[data-sonner-toaster] [data-sonner-toast]::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 14px;
+  bottom: 14px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+[data-sonner-toaster] [data-sonner-toast][data-type="success"]::before {
+  background: var(--foreground);
+}
+[data-sonner-toaster] [data-sonner-toast][data-type="error"]::before {
+  background: var(--negative);
+}
+[data-sonner-toaster] [data-sonner-toast][data-type="error"] {
+  animation: shake 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97) 1;
+}
+[data-sonner-toaster] [data-sonner-toast] [data-title] {
+  font-weight: 500;
+}
+[data-sonner-toaster] [data-sonner-toast] [data-description] {
+  color: var(--muted-foreground);
+}
+[data-sonner-toaster] [data-sonner-toast] [data-button] {
+  background: var(--foreground);
+  color: var(--background);
+  border-radius: 999px;
+  font-weight: 500;
+  padding: 0 10px;
+}
+[data-sonner-toaster] [data-sonner-toast] [data-icon] {
+  color: var(--foreground);
+}
+[data-sonner-toaster] [data-sonner-toast][data-type="error"] [data-icon] {
+  color: var(--negative);
+}
+
 /* Masked values in privacy mode. */
 .masked {
   filter: blur(6px);
   user-select: none;
+  transition: filter 300ms ease-out;
 }
 
 .prose-chat > :first-child {
@@ -155,7 +650,7 @@
 }
 .prose-chat p {
   margin: 0.55em 0;
-  line-height: 1.6;
+  line-height: 1.65;
 }
 .prose-chat ul,
 .prose-chat ol {
@@ -163,13 +658,31 @@
   padding-left: 1.25em;
 }
 .prose-chat ul {
-  list-style: disc;
+  list-style: none;
+}
+.prose-chat ul > li {
+  position: relative;
+}
+.prose-chat ul > li::before {
+  content: "";
+  position: absolute;
+  left: -0.95em;
+  top: 0.72em;
+  width: 0.38em;
+  height: 0.38em;
+  border-radius: 999px;
+  background: var(--foreground);
 }
 .prose-chat ol {
   list-style: decimal;
 }
+.prose-chat ol > li::marker {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  color: var(--muted-foreground);
+}
 .prose-chat li {
-  margin: 0.2em 0;
+  margin: 0.25em 0;
 }
 .prose-chat strong {
   font-weight: 600;
@@ -193,27 +706,42 @@
   padding: 0;
 }
 .prose-chat a {
-  color: var(--primary);
+  color: var(--foreground);
   text-decoration: underline;
-  text-underline-offset: 2px;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 200ms;
+}
+.prose-chat a:hover {
+  text-decoration-color: var(--foreground);
 }
 .prose-chat table {
   border-collapse: collapse;
   font-size: 0.85rem;
   margin: 0.6em 0;
 }
+.prose-chat th {
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
 .prose-chat th,
 .prose-chat td {
   border-bottom: 1px solid var(--border);
-  padding: 0.35em 0.6em;
+  padding: 0.4em 0.7em;
   text-align: left;
 }
 .prose-chat h1,
 .prose-chat h2,
 .prose-chat h3 {
   font-family: var(--font-display);
-  font-weight: 700;
-  margin: 0.9em 0 0.4em;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  margin: 1em 0 0.4em;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -26,9 +26,11 @@ import {
 import { FIELD_ROLES, type Manifest } from "@tomoe/core"
 import { toast } from "sonner"
 
+import { DiffSummary } from "@/components/manifest-diff"
 import { Markdown } from "@/components/markdown"
-import { Badge, Button, cn, Dialog, Field, inputClass, TomoeMark } from "@/components/ui"
+import { Badge, Button, cn, Dialog, DoneCheck, Field, Gauge, inputClass, TomoeMark } from "@/components/ui"
 import { api, discoverPath, type Finding, type Recon, stream } from "@/lib/api"
+import { useMascotWork } from "@/lib/mascot"
 import { useWorkspace } from "@/lib/workspace"
 
 export function Dialogs() {
@@ -67,9 +69,9 @@ const KIND_LABEL: Record<string, string> = {
 
 export function ReconList({ findings }: { findings: Finding[] }) {
   return (
-    <ul className="flex flex-col divide-y divide-border/60 rounded-xl border bg-background/60">
+    <ul className="stagger flex flex-col divide-y divide-border/60 rounded-xl border bg-background/60">
       {findings.map((f, i) => (
-        <li key={`${f.kind}-${i}`} className="flex animate-fade items-start gap-2.5 px-3 py-2 text-[13px]">
+        <li key={`${f.kind}-${i}`} className="flex items-start gap-2.5 px-3 py-2 text-[13px]">
           {f.ok ? <CheckIcon className="mt-0.5 size-4 shrink-0 text-positive" /> : <CircleDashedIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground/60" />}
           <span className={cn("w-32 shrink-0 font-medium", !f.ok && "text-muted-foreground")}>{KIND_LABEL[f.kind] ?? f.kind}</span>
           <span className="min-w-0 flex-1 break-words text-muted-foreground">{f.note}</span>
@@ -225,24 +227,29 @@ function ConnectForm({ initialUrl }: { initialUrl?: string }) {
               />
             </div>
             <Button type="button" variant="outline" className="h-11" onClick={() => void test()} disabled={!target.trim() || testing}>
-              {testing ? <TomoeMark working className="size-4 text-primary" /> : <RadarIcon />}
+              {testing ? <TomoeMark working className="size-4" /> : <RadarIcon />}
               Test
             </Button>
           </div>
         </Field>
 
-        {testing && <p className="animate-pulse text-[13px] text-muted-foreground">Looking at {hostOf(target)}…</p>}
+        {testing && (
+          <div className="flex animate-fade flex-col gap-2">
+            <span className="label-caps">Looking at {hostOf(target)}</span>
+            <Gauge className="h-1.5! w-40" />
+          </div>
+        )}
         {report && (
           <div className="flex animate-rise flex-col gap-2">
             {ready ? (
-              <p className="flex items-start gap-2 rounded-lg bg-positive/12 px-3 py-2 text-[13px]">
+              <p className="flex items-start gap-2 rounded-lg border border-positive/25 bg-positive/[0.06] px-3 py-2 text-[13px]">
                 <SparklesIcon className="mt-0.5 size-4 shrink-0 text-positive" />
                 <span>
                   <strong>Tomoe-ready.</strong> It publishes its own manifest ({report.manifest!.sources.join(", ")}): connecting needs no discovery agent.
                 </span>
               </p>
             ) : report.manifestProblem ? (
-              <p className="rounded-lg bg-warning/12 px-3 py-2 text-[13px]">Its tomoe.json has a manifest Tomoe cannot use: {report.manifestProblem}</p>
+              <p className="rounded-lg border border-warning/30 bg-warning/[0.07] px-3 py-2 text-[13px]">Its tomoe.json has a manifest Tomoe cannot use: {report.manifestProblem}</p>
             ) : null}
             <ReconList findings={report.findings} />
           </div>
@@ -261,7 +268,7 @@ function ConnectForm({ initialUrl }: { initialUrl?: string }) {
         </Field>
 
         <div className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium">Screenshots (optional)</span>
+          <span className="label-caps">Screenshots (optional)</span>
           <div
             className="flex min-h-20 flex-wrap items-center gap-2 rounded-lg border border-dashed bg-background/60 p-2"
             onDragOver={(e) => e.preventDefault()}
@@ -387,8 +394,8 @@ function CopyLine({ text, onCopy }: { text: string; onCopy: () => void }) {
 
 function QuickCard({ icon, title, text, action, onClick, busy, disabled, accent }: { icon: React.ReactNode; title: string; text: string; action: string; onClick: () => void; busy: boolean; disabled: boolean; accent?: boolean }) {
   return (
-    <div className={cn("flex flex-col gap-2 rounded-xl border bg-card p-3.5", accent && "border-kihada/50 bg-kihada/8")}>
-      <div className="flex items-center gap-2 text-sm font-medium [&_svg]:size-4 [&_svg]:text-primary">
+    <div className={cn("flex flex-col gap-2 rounded-xl border bg-card p-3.5", accent && "border-accent/50 bg-accent/8")}>
+      <div className="flex items-center gap-2 text-sm font-medium [&_svg]:size-4">
         {icon}
         {title}
       </div>
@@ -408,6 +415,7 @@ function Discovery() {
   const [status, setStatus] = React.useState<string | null>(null)
   const [error, setError] = React.useState<string | null>(null)
   const [running, setRunning] = React.useState(false)
+  useMascotWork("discovery", running, !!error)
   const [findings, setFindings] = React.useState<Finding[]>([])
   const started = React.useRef(false)
 
@@ -452,9 +460,15 @@ function Discovery() {
   return (
     <div className="flex flex-col gap-4 p-5">
       <div className="flex items-center gap-3">
-        <TomoeMark working={running} accent={running} className="size-7 text-primary" />
-        <div className="min-w-0">
-          <p className="font-medium">{running ? (status ?? "Reading…") : error ? "Discovery stopped" : "Done"}</p>
+        <TomoeMark working={running} accent={running} className="size-7 text-foreground" />
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <p className="flex items-center gap-2 font-medium">
+            {!running && !error && <DoneCheck className="size-4" />}
+            <span key={running ? (status ?? "r") : error ? "e" : "d"} className="animate-fade">
+              {running ? (status ?? "Reading…") : error ? "Discovery stopped" : "Done"}
+            </span>
+          </p>
+          {running && <Gauge className="h-1.5! w-40" />}
           <p className="truncate text-xs text-muted-foreground">
             {[app?.connection.website, app?.connection.url, app?.connection.repo].filter(Boolean).join(" · ")}
           </p>
@@ -462,9 +476,9 @@ function Discovery() {
       </div>
       {findings.length > 0 && <ReconList findings={findings} />}
       {steps.length > 0 && (
-        <ul className="flex max-h-48 flex-col gap-0.5 overflow-y-auto rounded-lg bg-muted/50 p-3 font-mono text-[11.5px] text-muted-foreground">
+        <ul className="flex max-h-48 flex-col gap-0.5 overflow-y-auto rounded-lg border bg-background/60 p-3 font-mono text-[11.5px] text-muted-foreground">
           {steps.map((s, i) => (
-            <li key={i} className="flex animate-fade gap-2">
+            <li key={i} className="flex animate-enter-left gap-2">
               <span className="shrink-0 text-foreground/80">{s.name}</span>
               <span className="truncate">{s.detail}</span>
             </li>
@@ -473,9 +487,9 @@ function Discovery() {
       )}
       {shown && <Markdown text={shown} className="text-sm" />}
       {error && (
-        <p className="flex items-start gap-2 rounded-lg bg-negative/10 px-3 py-2 text-[13px] text-negative">
+        <p role="alert" className="flex animate-shake items-start gap-2 rounded-lg border border-negative/25 bg-negative/[0.06] px-3 py-2 text-[13px] text-negative">
           <CircleAlertIcon className="mt-0.5 size-4 shrink-0" />
-          {error}
+          <span className="error-underline pb-0.5">{error}</span>
         </p>
       )}
       {!running && (
@@ -497,7 +511,7 @@ function Discovery() {
 type Draftable = Manifest
 
 function Review() {
-  const { detail, app, reloadDetail, setDialog, setView } = useWorkspace()
+  const { detail, app, reloadDetail, setDialog, setView, view } = useWorkspace()
   const original = (detail?.draft?.manifest ?? detail?.manifest) as Draftable | undefined
   const [m, setM] = React.useState<Draftable | undefined>(original)
   const [skip, setSkip] = React.useState<Set<string>>(new Set())
@@ -523,8 +537,8 @@ function Review() {
       })
       await reloadDetail()
       setDialog(null)
-      setView("focus")
-      toast.success(`${app.name} is connected: ask for a widget.`)
+      if (view !== "settings") setView("focus")
+      toast.success(view === "settings" ? `${app.name}: sources saved. Test them to check.` : `${app.name} is connected: ask for a widget.`)
     } catch (e) {
       toast.error((e as Error).message)
     } finally {
@@ -534,6 +548,12 @@ function Review() {
 
   return (
     <div className="flex flex-col">
+      {detail?.draft && (
+        <div className="mx-5 mt-5 flex flex-col gap-3 rounded-xl border px-4 py-3.5">
+          <span className="label-caps">What changes against the accepted manifest</span>
+          <DiffSummary before={detail.manifest} after={detail.draft.manifest as Manifest} />
+        </div>
+      )}
       {!!detail?.draft?.problems.length && (
         <div className="mx-5 mt-5 flex flex-col gap-1 rounded-lg bg-warning/12 px-3 py-2.5 text-[13px]">
           <p className="font-medium">The probe found things to check</p>
@@ -563,7 +583,7 @@ function Review() {
                 }
                 aria-label={`Use ${s.label}`}
               />
-              <span className="font-display font-bold">{s.label}</span>
+              <span className="font-display text-[13.5px] font-medium tracking-tight">{s.label}</span>
               <code className="font-mono text-xs text-muted-foreground">{s.id}</code>
               <Badge tone="outline" className="ml-auto font-mono">
                 {s.origin.kind === "rest" ? (
@@ -618,7 +638,7 @@ function Review() {
                           aria-checked={f.sensitive}
                           aria-label={`${f.name} is sensitive`}
                           onClick={() => editField(si, fi, { sensitive: !f.sensitive })}
-                          className={cn("inline-flex h-6 cursor-pointer items-center gap-1 rounded-full px-2 text-[11px] font-medium transition-colors", f.sensitive ? "bg-kihada/25 text-foreground" : "text-muted-foreground hover:bg-muted")}
+                          className={cn("inline-flex h-6 cursor-pointer items-center gap-1 rounded-full px-2 text-[11px] font-medium transition-colors", f.sensitive ? "bg-accent/25 text-foreground" : "text-muted-foreground hover:bg-muted")}
                         >
                           {f.sensitive && <EyeOffIcon className="size-3" />}
                           {f.sensitive ? "Hidden" : "Visible"}

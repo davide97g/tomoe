@@ -67,6 +67,50 @@ describe("api", () => {
     }
   })
 
+  it("tests each source with a timed sample: counts and errors, never values", async () => {
+    const r = await req("/api/apps/example-shop/test", json({}))
+    expect(r.status).toBe(200)
+    const body = (await r.json()) as { results: { source: string; ok: boolean; rows: number; ms: number; missing: string[]; error: string | null }[] }
+    expect(body.results.map((x) => x.source)).toEqual(["orders", "customers"])
+    for (const x of body.results) expect(x).toMatchObject({ ok: true, missing: [], error: null })
+    expect(body.results[0].rows).toBeGreaterThan(100)
+    expect(Object.keys(body.results[0]).sort()).toEqual(["error", "label", "missing", "ms", "ok", "origin", "rows", "source"])
+    const detail = (await (await req("/api/apps/example-shop")).json()) as { checks: Record<string, { ok: boolean }>; accepted: string | null }
+    expect(detail.checks.orders.ok).toBe(true)
+    expect(detail.accepted).toMatch(/^\d{4}-/)
+    const unknown = await req("/api/apps/example-shop/test", json({ source: "nope" }))
+    expect(unknown.status).toBe(400)
+    expect(((await unknown.json()) as { error: string }).error).toContain("orders, customers")
+  })
+
+  it("keeps header values write-only and patches only what is sent", async () => {
+    const created = await req("/api/apps", json({ name: "Closed", connection: { url: "http://127.0.0.1:59999", headers: { Authorization: "Bearer s3cret" } } }))
+    const id = ((await created.json()) as { id: string }).id
+    const patch = (body: unknown) => req(`/api/apps/${id}`, { ...json(body), method: "PATCH" })
+    const read = async () => (await (await req(`/api/apps/${id}`)).json()) as { app: { connection: Record<string, unknown> } }
+    expect(JSON.stringify(await read())).not.toContain("s3cret")
+    expect((await patch({ connection: { website: "https://closed.example" } })).status).toBe(200)
+    expect(s.store.app(id)?.connection.headers).toEqual({ Authorization: "Bearer s3cret" })
+    await patch({ connection: { headers: { Authorization: "" } } })
+    expect(s.store.app(id)?.connection.headers).toEqual({ Authorization: "Bearer s3cret" })
+    await patch({ connection: { headers: { Authorization: "Bearer n3w" }, website: null } })
+    expect(s.store.app(id)?.connection).toMatchObject({ headers: { Authorization: "Bearer n3w" }, url: "http://127.0.0.1:59999" })
+    expect(s.store.app(id)?.connection.website).toBeUndefined()
+    expect((await patch({ connection: { repo: "/no/such/folder" } })).status).toBe(400)
+    // A stored value never follows the API to another origin.
+    await patch({ connection: { url: "http://127.0.0.1:59998", headers: { Authorization: "•••" } } })
+    expect(s.store.app(id)?.connection.headers).toEqual({})
+    await patch({ connection: { url: "http://127.0.0.1:59999", headers: { Authorization: "Bearer n3w" } } })
+    await patch({ connection: { url: "http://127.0.0.1:59999/v2" } })
+    expect(s.store.app(id)?.connection.headers).toEqual({ Authorization: "Bearer n3w" })
+    // A source on a closed port: the check says so in words, and stays a GET on the connected origin.
+    const manifest = { version: 1, app: { name: "Closed" }, sources: [{ id: "items", label: "Items", key: "id", origin: { kind: "rest", method: "GET", path: "/items" }, fields: [{ name: "id", label: "Id", type: "string", role: "id" }] }], actions: [] }
+    expect((await req(`/api/apps/${id}/manifest`, json({ manifest }))).status).toBe(200)
+    const check = (await (await req(`/api/apps/${id}/test`, json({ source: "items" }))).json()) as { results: { ok: boolean; error: string }[] }
+    expect(check.results[0].ok).toBe(false)
+    expect(check.results[0].error).toContain("http://127.0.0.1:59999 refused the connection")
+  })
+
   it("serves the sandbox page with its own CSP", async () => {
     const r = await req("/sandbox/widget.html")
     expect(r.headers.get("content-security-policy")).toBe(SANDBOX_CSP)

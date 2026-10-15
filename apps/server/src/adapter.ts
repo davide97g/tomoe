@@ -17,6 +17,16 @@ const MAX_BYTES = 20_000_000
 const CACHE_MS = 30_000
 
 export type Fetched = { rows: Row[] | null; error?: string }
+/** The result of a source's health check (Settings → Test). */
+export type Sample = { source: string; label: string; origin: string; ok: boolean; rows: number | null; ms: number; missing: string[]; error: string | null }
+
+/**
+ * The user's headers as sent. An Authorization value with no scheme (a bare token, no space) gets
+ * "Bearer " in front: people paste the token alone, and the backend would answer 401.
+ */
+export function sendHeaders(headers: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(Object.entries(headers).map(([k, v]) => [k, k.toLowerCase() === "authorization" && !/\s/.test(v.trim()) ? `Bearer ${v.trim()}` : v]))
+}
 
 /** A GET on the backend's origin, or an error; never follows a redirect. */
 export async function hostGet(conn: Connection, path: string, extra: { maxBytes?: number; accept?: string } = {}): Promise<{ status: number; type: string; body: string }> {
@@ -27,7 +37,7 @@ export async function hostGet(conn: Connection, path: string, extra: { maxBytes?
   const r = await fetch(url, {
     method: "GET",
     redirect: "error",
-    headers: { Accept: extra.accept ?? "application/json", ...conn.headers },
+    headers: { Accept: extra.accept ?? "application/json", ...sendHeaders(conn.headers) },
     signal: AbortSignal.timeout(TIMEOUT_MS),
   })
   const max = extra.maxBytes ?? MAX_BYTES
@@ -108,7 +118,7 @@ export function shape(s: Source, rows: Row[]): Row[] {
   return rows.slice(0, s.maxRows).map((r) => Object.fromEntries(s.fields.map((f) => [f.name, coerce(f, r[f.name])])))
 }
 
-async function restRows(conn: Connection, s: Source & { origin: { kind: "rest" } }): Promise<Row[]> {
+async function restRows(conn: Connection, s: Source & { origin: { kind: "rest" } }, maxPages = MAX_PAGES): Promise<Row[]> {
   const out: Row[] = []
   const withParams = (params: Record<string, string>) => {
     const u = new URL(s.origin.path, "http://x")
@@ -116,7 +126,7 @@ async function restRows(conn: Connection, s: Source & { origin: { kind: "rest" }
     return u.pathname + u.search
   }
   let cursor: string | null = null
-  for (let page = 0; page < MAX_PAGES && out.length < s.maxRows; page++) {
+  for (let page = 0; page < maxPages && out.length < s.maxRows; page++) {
     const p = s.origin.pagination
     const path =
       p === "page" ? withParams({ page: String(page + 1), per_page: String(PAGE_SIZE), limit: String(PAGE_SIZE) })
@@ -141,6 +151,22 @@ async function restRows(conn: Connection, s: Source & { origin: { kind: "rest" }
     }
   }
   return out
+}
+
+/** A failed read in words the user (and the agent) can act on. */
+export function plainError(e: Error, conn: Connection): string {
+  const origin = conn.url ? new URL(conn.url).origin : "the backend"
+  const cause = (e as Error & { cause?: { code?: string; message?: string; errors?: { code?: string }[] } }).cause
+  const code = cause?.code ?? cause?.errors?.find((x) => x.code)?.code
+  if (e.name === "TimeoutError") return `${origin} did not answer within ${TIMEOUT_MS / 1000} s`
+  if (cause && "message" in cause && cause.message === "bad port") return `${origin} uses a port that fetch refuses to call (a "bad port"): serve the API on another port`
+  if (code === "ECONNREFUSED") return `${origin} refused the connection: is the API running, and is the base URL right?`
+  if (code === "ENOTFOUND" || code === "EAI_AGAIN") return `${origin} could not be found: check the API base URL`
+  if (/redirect/i.test(e.message) || /redirect/i.test(String((e as Error & { cause?: Error }).cause?.message))) return `${origin} answered with a redirect, which Tomoe does not follow: give the final API base URL`
+  if (e.message === "fetch failed") return `could not reach ${origin}${code ? ` (${code})` : ""}: is it running, and is the base URL right?`
+  if (/HTTP 40[13]\b/.test(e.message)) return `${e.message}: the backend refused the credentials; check the auth header in Settings`
+  if (/HTTP 404\b/.test(e.message)) return `${e.message}: the path is not on the backend any more; recheck the app to update its sources`
+  return e.message
 }
 
 /** Reads sources for one app, with a short cache keyed by source. */
@@ -168,6 +194,32 @@ export class Adapter {
     const value = this.fetch(s).catch((e: Error) => ({ rows: null, error: e.message }))
     this.cache.set(key, { at: Date.now(), value })
     return value
+  }
+
+  /**
+   * A health check of one source: one fresh read of its first page (GET-only, same origin, like every
+   * read), timed. Says how many rows came back and which declared fields none of them had; no values.
+   */
+  async sample(m: Manifest, sourceId: string): Promise<Sample> {
+    const s = m.sources.find((x) => x.id === sourceId)
+    const base = { source: sourceId, label: s?.label ?? sourceId, origin: s?.origin.kind ?? "unknown" }
+    if (!s) return { ...base, ok: false, rows: null, ms: 0, missing: [], error: `unknown source "${sourceId}": the manifest has ${m.sources.map((x) => x.id).join(", ") || "no sources"}` }
+    const t0 = performance.now()
+    try {
+      let raw: Row[] | null
+      const o = s.origin
+      if (o.kind === "memory") raw = this.memory(s.id)
+      else if (o.kind === "rest") {
+        if (!this.connection().url) throw new Error("no backend URL connected: add the API base URL in Settings")
+        raw = await restRows(this.connection(), s as Source & { origin: { kind: "rest" } }, 1)
+      } else throw new Error(`${o.kind} sources are not wired yet: Tomoe reads rest and stored sources only`)
+      const ms = Math.round(performance.now() - t0)
+      if (!raw) return { ...base, ok: false, rows: null, ms, missing: [], error: "no rows stored for this source: attach its data file again" }
+      const missing = raw.length ? s.fields.filter((f) => raw.every((r) => r[f.name] === undefined)).map((f) => f.name) : []
+      return { ...base, ok: true, rows: raw.length, ms, missing, error: null }
+    } catch (e) {
+      return { ...base, ok: false, rows: null, ms: Math.round(performance.now() - t0), missing: [], error: plainError(e as Error, this.connection()) }
+    }
   }
 
   private async fetch(s: Source): Promise<Fetched> {

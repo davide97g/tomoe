@@ -4,3 +4,10 @@ dist/
 *.log
 .env
 var/
+
+# Copy the mascot: baked v2 frames, rebuilt by design/mascot/tools/pack.py
+design/mascot/v2/frames/
+design/mascot/v2/sprites/
+design/mascot/v2/parts/
+design/mascot/v2/rig/
+__pycache__/

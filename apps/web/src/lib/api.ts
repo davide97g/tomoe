@@ -14,7 +14,12 @@ export type Status = { claude: boolean; today: string; skill: { repo: string; na
 export type AppRecord = { id: string; name: string; kind: "playground" | "example" | "connected"; created: string; connection: Connection }
 export type Draft = { manifest: unknown; problems: string[]; created: string }
 export type HistoryItem = { label: string; at: string }
-export type AppDetail = { app: AppRecord; manifest: Manifest; draft: Draft | null; history: HistoryItem[] }
+/** The last health check of a source (Settings → Test). Counts and errors only, never values. */
+export type Check = { at: string; ok: boolean; rows: number | null; ms: number; missing: string[]; error: string | null }
+export type Sample = Omit<Check, "at"> & { source: string; label: string; origin: string }
+export type AppDetail = { app: AppRecord; manifest: Manifest; draft: Draft | null; history: HistoryItem[]; accepted: string | null; checks: Record<string, Check> }
+/** A connection change: only what is sent changes; null removes a URL or the repo; a header value "" keeps the stored one. */
+export type ConnectionPatch = { repo?: string | null; website?: string | null; url?: string | null; openapi?: string | null; headers?: Record<string, string>; files?: string[] }
 export type ChatFile = { path: string; name: string; image: boolean; size: number; type: string }
 export type ChatMessage = { role: "user" | "assistant"; text: string; tools: { name: string; detail: string }[]; files?: ChatFile[]; error?: string }
 export type Chat = { id: string; title: string; session: string | null; created: string; updated: string; about?: string; messages: ChatMessage[] }
@@ -54,11 +59,12 @@ export const api = {
   app: (id: string) => call<AppDetail>(app(id)),
   createApp: (name: string, connection: Connection) => call<AppRecord>("/api/apps", { method: "POST", json: { name, connection } }),
   createExample: () => call<AppRecord>("/api/apps/example", { method: "POST" }),
-  updateApp: (id: string, patch: { name?: string; connection?: Partial<Connection> }) => call<AppRecord>(app(id), { method: "PATCH", json: patch }),
+  updateApp: (id: string, patch: { name?: string; connection?: ConnectionPatch }) => call<AppRecord>(app(id), { method: "PATCH", json: patch }),
   deleteApp: (id: string) => call<{ ok: boolean }>(app(id), { method: "DELETE" }),
   acceptManifest: (id: string, manifest: unknown) => call<{ manifest: Manifest }>(`${app(id)}/manifest`, { method: "POST", json: { manifest } }),
   discardDraft: (id: string) => call<{ ok: boolean }>(`${app(id)}/draft`, { method: "DELETE" }),
   dataFile: (id: string, path: string) => call<{ draft: Manifest; source: string }>(`${app(id)}/datafile`, { method: "POST", json: { path } }),
+  test: (id: string, source?: string) => call<{ at: string; results: Sample[]; checks: Record<string, Check> }>(`${app(id)}/test`, { method: "POST", json: source ? { source } : {} }),
   rows: (id: string, source: string, fresh = false) => call<{ rows: Row[] | null; error: string | null }>(`${app(id)}/rows?source=${encodeURIComponent(source)}${fresh ? "&fresh=1" : ""}`),
   board: (id: string) => call<{ board: Board; history: HistoryItem[] }>(`${app(id)}/board`),
   saveWidget: (id: string, widget: { id: string }) => call<{ board: Board; added: boolean }>(`${app(id)}/board/widgets/${encodeURIComponent(widget.id)}`, { method: "PUT", json: widget }),

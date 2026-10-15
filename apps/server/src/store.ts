@@ -4,6 +4,7 @@
  *   apps/<id>/app.json        name and connection (repo path, backend URL, headers: never sent to the browser)
  *   apps/<id>/manifest.json   the accepted Source Manifest
  *   apps/<id>/draft.json      a manifest the discovery drafted, waiting for review
+ *   apps/<id>/checks.json     the last health check of each source (no values, only counts and errors)
  *   apps/<id>/rows/<src>.json rows of "memory" sources (data files, the example)
  *   apps/<id>/board.json      the widgets the user added; history.json holds earlier boards for Undo
  *   apps/<id>/chats/<id>.json conversations; files/ the attachments
@@ -11,7 +12,7 @@
  * The agents never write here: the server does, after validating what they proposed.
  */
 import { randomBytes } from "node:crypto"
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 
 import { type Board, type Manifest, type ManifestInput, type WidgetInput, widgetFields } from "@tomoe/core"
@@ -39,9 +40,51 @@ export const Connection = z
   .strict()
 export type Connection = z.infer<typeof Connection>
 
+/**
+ * A change to a connection (PATCH): only what is sent changes. No defaults here, so a partial change
+ * never resets headers or screenshots; null removes a URL or the repo.
+ */
+export const ConnectionPatch = z
+  .object({
+    repo: Connection.shape.repo.unwrap().nullable().optional(),
+    website: Connection.shape.website.unwrap().nullable().optional(),
+    url: Connection.shape.url.unwrap().nullable().optional(),
+    openapi: Connection.shape.openapi.unwrap().nullable().optional(),
+    headers: z.record(HeaderName, z.string().max(4000)).optional(),
+    files: z.array(z.string().max(300)).max(10).optional(),
+  })
+  .strict()
+export type ConnectionPatch = z.infer<typeof ConnectionPatch>
+
+const originOf = (url: string | undefined) => (url ? new URL(url).origin : null)
+
+/**
+ * Applies a patch. Header values are write-only: one sent as "" or "•••" keeps the stored value (the
+ * browser never has it); a header left out is removed. Stored values are only kept for the origin
+ * they were given for: when the API base URL moves to another origin, every header needs a new value.
+ */
+export function patchConnection(current: Connection, patch: ConnectionPatch): Connection {
+  const next: Connection = { ...current, headers: { ...current.headers }, files: [...current.files] }
+  for (const k of ["repo", "website", "url", "openapi"] as const) {
+    const v = patch[k]
+    if (v === null) delete next[k]
+    else if (v !== undefined) next[k] = v
+  }
+  const kept = originOf(next.url) === originOf(current.url) ? current.headers : {}
+  next.headers = Object.fromEntries(
+    Object.entries(patch.headers ?? kept)
+      .map(([k, v]) => [k, v === "" || v === "•••" ? (kept[k] ?? "") : v] as const)
+      .filter(([, v]) => v !== "")
+  )
+  if (patch.files) next.files = patch.files
+  return next
+}
+
 export type AppKind = "playground" | "example" | "connected"
 export type AppRecord = { id: string; name: string; kind: AppKind; created: string; connection: Connection }
 export type Draft = { manifest: unknown; problems: string[]; created: string }
+/** The last health check of each source (Settings → Test), keyed by source id. */
+export type Checks = Record<string, { at: string; ok: boolean; rows: number | null; ms: number; missing: string[]; error: string | null }>
 
 export type ChatMessage = {
   role: "user" | "assistant"
@@ -152,6 +195,28 @@ export class Store {
 
   manifest(id: string): unknown {
     return json(join(this.dir(id), "manifest.json"))
+  }
+
+  /** When the accepted manifest was last saved, or null. */
+  manifestSaved(id: string): string | null {
+    try {
+      return statSync(join(this.dir(id), "manifest.json")).mtime.toISOString()
+    } catch {
+      return null
+    }
+  }
+
+  checks(id: string): Checks {
+    const c = json(join(this.dir(id), "checks.json"))
+    return c && typeof c === "object" && !Array.isArray(c) ? (c as Checks) : {}
+  }
+
+  saveChecks(id: string, update: Checks) {
+    return this.locked(`${id}/checks`, () => {
+      const next = { ...this.checks(id), ...update }
+      write(join(this.dir(id), "checks.json"), next)
+      return next
+    })
   }
 
   saveManifest(id: string, m: Manifest) {

@@ -8,9 +8,11 @@ import { actionPath, type Board, type Context, createTomoe, type Row, type Tomoe
 import { toast } from "sonner"
 
 import { type AppDetail, type AppRecord, api, type HistoryItem } from "@/lib/api"
+import { useMascot } from "@/lib/mascot"
 
 type Rows = Record<string, { rows: Row[] | null; error: string | null; at: number } | undefined>
-export type View = "focus" | "board"
+/** "settings" covers the chat and the board without unmounting them (an answer keeps streaming). */
+export type View = "focus" | "board" | "settings"
 export type Dialog = null | { kind: "connect"; url?: string } | { kind: "review" } | { kind: "discover" } | { kind: "skill" }
 export type ChatRequest = { about?: string; text?: string; nonce: number }
 
@@ -85,6 +87,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [view, setView] = React.useState<View>("focus")
   const [dialog, setDialog] = React.useState<Dialog>(null)
   const [chatRequest, setChatRequest] = React.useState<ChatRequest | null>(null)
+  const { trigger: mascotSays } = useMascot()
   const wanted = React.useRef(new Set<string>())
   const inflight = React.useRef(new Set<string>())
 
@@ -197,13 +200,15 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         setBoard(r.board)
         setHistory((h) => [{ label: `${r.added ? "Add" : "Update"} ${w.title}`, at: new Date().toISOString() }, ...h])
         toast.success(r.added ? `Added “${w.title}” to the board` : `Updated “${w.title}”`, { action: { label: "Show board", onClick: () => setView("board") } })
+        mascotSays("success")
         return true
       } catch (e) {
         toast.error((e as Error).message)
+        mascotSays("error")
         return false
       }
     },
-    [appId]
+    [appId, mascotSays]
   )
 
   const remove = React.useCallback(

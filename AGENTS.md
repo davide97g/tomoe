@@ -7,6 +7,7 @@ A chat that designs dashboards and widgets on top of any app (`README.md`). The 
 - `packages/core/sandbox/widget.html`: the sandbox page (sanitizer, worker prelude with the `ac` API, protocol).
 - `apps/server/src/`: `claude.ts` (`claude -p` runner and the tool profiles: the agents' security boundary), `mcp.ts` (stdio MCP server the agent calls for data), `agent.ts` (prompts, discovery, tool answers), `recon.ts` (deterministic look at a URL: tomoe.json, llms.txt, OpenAPI, MCP, GraphQL), `adapter.ts` (host reads: GET only, origin-pinned), `infer.ts` (CSV/JSON to a source), `store.ts` (files under `var/`), `workspace.ts`, `app.ts` (routes, local-only guards).
 - `apps/web/src/`: `lib/workspace.tsx` (state), `lib/chat.ts`, `components/` (chat, composer, proposal, widget-view renderer, sandbox-frame, board, connect).
+- `design/mascot/`: sources of Copy, the cat (`apps/web/src/components/mascot.tsx`); `tools/pack.py` rebuilds `apps/web/public/mascot/` (see its README).
 - `examples/`: made-up data only. `skills/tomoe/`: the agent skill. `skills/tomoe-ready/`: the skill host apps install (skills.sh) to publish what Tomoe reads.
 
 ## Conventions

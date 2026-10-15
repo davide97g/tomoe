@@ -18,7 +18,7 @@ import type { Config } from "./config.ts"
 import { shopRows } from "../../../examples/shop/data.ts"
 import { inferSource } from "./infer.ts"
 import { type Recon, recon, reconNote } from "./recon.ts"
-import { AppId, type AppRecord, type ChatFile, type ChatMessage, Connection, now, Store } from "./store.ts"
+import { AppId, type AppRecord, type ChatFile, type ChatMessage, Connection, ConnectionPatch, now, patchConnection, Store } from "./store.ts"
 import { today, type Workspace, Workspaces } from "./workspace.ts"
 
 const MAX_FILES = 10
@@ -35,7 +35,8 @@ const ChatBody = z.object({
   about: z.string().max(100).optional(),
 })
 const NewApp = z.object({ name: z.string().trim().min(1).max(80), connection: Connection })
-const PatchApp = z.object({ name: z.string().trim().min(1).max(80).optional(), connection: Connection.partial().optional() })
+const TestBody = z.object({ source: z.string().max(80).optional() }).strict()
+const PatchApp = z.object({ name: z.string().trim().min(1).max(80).optional(), connection: ConnectionPatch.optional() }).strict()
 
 export type Services = { config: Config; store: Store; workspaces: Workspaces; claude: Claude; token: string; agentUrl: () => string }
 
@@ -49,6 +50,12 @@ export function services(config: Config): Services {
     token: randomBytes(24).toString("hex"),
     agentUrl: () => `http://127.0.0.1:${config.port}`,
   }
+}
+
+/** A repo folder the agents may read: an existing folder on this machine, "~" expanded. */
+function repoFolder(input: string): { path: string } | { error: string } {
+  const path = resolve(input.replace(/^~(?=\/|$)/, process.env.HOME ?? "~"))
+  return existsSync(path) && statSync(path).isDirectory() ? { path } : { error: `connection.repo: ${path} is not a folder on this machine; give the path of a local checkout` }
 }
 
 /** The app as the browser sees it: header values stay on the server. */
@@ -169,9 +176,9 @@ export function createApp(s: Services) {
     if (!body.success) return c.json({ error: issueLine(body.error) }, 400)
     const { connection } = body.data
     if (connection.repo) {
-      const repo = resolve(connection.repo.replace(/^~(?=\/|$)/, process.env.HOME ?? "~"))
-      if (!existsSync(repo) || !statSync(repo).isDirectory()) return c.json({ error: `${repo} is not a folder on this machine` }, 400)
-      connection.repo = repo
+      const repo = repoFolder(connection.repo)
+      if ("error" in repo) return c.json({ error: repo.error }, 400)
+      connection.repo = repo.path
     }
     if (!connection.repo && !connection.url && !connection.openapi && !connection.website) return c.json({ error: "give a website, an API URL, an OpenAPI document or a repo folder" }, 400)
     const record: AppRecord = { id: store.newId(body.data.name), name: body.data.name, kind: "connected", created: now(), connection }
@@ -197,7 +204,14 @@ export function createApp(s: Services) {
   app.get("/api/apps/:id", (c) => {
     const w = ws(c.req.param("id"))
     if (!w) return c.json({ error: "not found" }, 404)
-    return c.json({ app: publicApp(w.record()), manifest: w.tomoe.manifest, draft: store.draft(w.id), history: store.history(w.id).slice(0, 20) })
+    return c.json({
+      app: publicApp(w.record()),
+      manifest: w.tomoe.manifest,
+      draft: store.draft(w.id),
+      history: store.history(w.id).slice(0, 20),
+      accepted: store.manifestSaved(w.id),
+      checks: store.checks(w.id),
+    })
   })
 
   app.patch("/api/apps/:id", async (c) => {
@@ -205,18 +219,13 @@ export function createApp(s: Services) {
     if (!w) return c.json({ error: "not found" }, 404)
     const body = PatchApp.safeParse(await c.req.json().catch(() => null))
     if (!body.success) return c.json({ error: issueLine(body.error) }, 400)
-    const next = await store.updateApp(w.id, (a) => ({
-      ...a,
-      name: body.data.name ?? a.name,
-      // Headers sent as "•••" keep their stored value.
-      connection: body.data.connection
-        ? {
-            ...a.connection,
-            ...body.data.connection,
-            headers: Object.fromEntries(Object.entries(body.data.connection.headers ?? a.connection.headers).map(([k, v]) => [k, v === "•••" ? (a.connection.headers[k] ?? "") : v])),
-          }
-        : a.connection,
-    }))
+    const patch = body.data.connection
+    if (patch?.repo) {
+      const repo = repoFolder(patch.repo)
+      if ("error" in repo) return c.json({ error: repo.error }, 400)
+      patch.repo = repo.path
+    }
+    const next = await store.updateApp(w.id, (a) => ({ ...a, name: body.data.name ?? a.name, connection: patch ? patchConnection(a.connection, patch) : a.connection }))
     w.adapter.clear()
     return c.json(publicApp(next))
   })
@@ -349,6 +358,25 @@ export function createApp(s: Services) {
       }
       await send({ type: "error", message: "The discovery could not produce a valid manifest. Try again, or point it at a narrower folder." })
     })
+  })
+
+  // ---------- health check ----------
+
+  // Settings → Test: one fresh first-page read per source through the adapter (GET-only, origin-pinned),
+  // timed; counts, missing fields and errors are kept in checks.json. No row values leave this route.
+  app.post("/api/apps/:id/test", async (c) => {
+    const w = ws(c.req.param("id"))
+    if (!w) return c.json({ error: "not found" }, 404)
+    const body = TestBody.safeParse((await c.req.json().catch(() => ({}))) ?? {})
+    if (!body.success) return c.json({ error: issueLine(body.error) }, 400)
+    const m = w.tomoe.manifest
+    const wanted = body.data.source ? [body.data.source] : m.sources.map((x) => x.id)
+    if (body.data.source && !m.sources.some((x) => x.id === body.data.source)) return c.json({ error: `unknown source "${body.data.source}": the manifest has ${m.sources.map((x) => x.id).join(", ") || "no sources"}` }, 400)
+    const results = []
+    for (const id of wanted) results.push(await w.adapter.sample(m, id))
+    const at = now()
+    const checks = await store.saveChecks(w.id, Object.fromEntries(results.map(({ source, ok, rows, ms, missing, error }) => [source, { at, ok, rows, ms, missing, error }])))
+    return c.json({ at, results, checks })
   })
 
   // ---------- rows ----------

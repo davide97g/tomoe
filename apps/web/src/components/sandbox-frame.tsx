@@ -127,9 +127,9 @@ export function SandboxFrame({ widget }: { widget: Custom }) {
 
 function Problem({ text }: { text: string }) {
   return (
-    <p className="flex items-start gap-2 rounded-lg bg-negative/10 px-3 py-2 text-xs text-negative">
+    <p role="alert" className="flex animate-shake items-start gap-2 rounded-lg border border-negative/25 bg-negative/[0.06] px-3 py-2 text-xs text-negative">
       <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" />
-      <span className="min-w-0 break-words">{text}</span>
+      <span className="error-underline min-w-0 pb-0.5 break-words">{text}</span>
     </p>
   )
 }

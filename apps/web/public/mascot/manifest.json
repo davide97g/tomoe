@@ -1,0 +1,58 @@
+{
+  "idle": {
+    "frames": 72,
+    "fps": 24,
+    "cellWidth": 240,
+    "cellHeight": 240,
+    "columns": 12,
+    "loop": true
+  },
+  "think": {
+    "frames": 48,
+    "fps": 24,
+    "cellWidth": 240,
+    "cellHeight": 240,
+    "columns": 12,
+    "loop": true
+  },
+  "success": {
+    "frames": 29,
+    "fps": 24,
+    "cellWidth": 240,
+    "cellHeight": 240,
+    "columns": 12,
+    "loop": false
+  },
+  "sleep": {
+    "frames": 96,
+    "fps": 24,
+    "cellWidth": 240,
+    "cellHeight": 240,
+    "columns": 12,
+    "loop": true
+  },
+  "jump": {
+    "frames": 29,
+    "fps": 24,
+    "cellWidth": 240,
+    "cellHeight": 240,
+    "columns": 12,
+    "loop": false
+  },
+  "walk": {
+    "frames": 8,
+    "fps": 10,
+    "cellWidth": 240,
+    "cellHeight": 240,
+    "columns": 8,
+    "loop": true
+  },
+  "error": {
+    "frames": 7,
+    "fps": 6,
+    "cellWidth": 240,
+    "cellHeight": 240,
+    "columns": 7,
+    "loop": false
+  }
+}
